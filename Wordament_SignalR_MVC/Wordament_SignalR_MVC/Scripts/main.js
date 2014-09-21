@@ -58,11 +58,11 @@ $().ready(function () {
                     {
                         $('div#AllWords').append('<b>'+ results.solution[x] + '</b><br/>');
                     }
-                    setTimeout(function () {
-                        alert('drawing new grid');
-                        DrawGrid(results.Grid);
-                        InitTimer(results.Life);
-                    }, 10000);
+                    //setTimeout(function () {
+                    //    alert('drawing new grid');
+                    //    DrawGrid(results.Grid);
+                    //    InitTimer(results.Life);
+                    //}, 40000);
                 });
             }
         });
