@@ -1,0 +1,170 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+    Layout = null;
+}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Wordament</title>
+    <script src="~/Scripts/jquery-1.10.2.js"></script>
+    <script src="~/Scripts/underscore.js"></script>
+    <script src="~/Scripts/dictionary.js"></script>
+    <script src="~/Scripts/jquery-ui-1.10.3.min.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.1.1.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Scripts/main.js"></script>
+    <script src="~/Scripts/timer.js"></script>
+    @*<script src="~/Scripts/CountdownTimer.js"></script>*@
+    <style>
+        body {
+            background-color: #789789;
+            vertical-align: middle;
+            text-align: center;
+            font-family: tahoma;
+            cursor: pointer;
+            font-size: 57px;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
+        #shape {
+            width: 100px;
+            height: 100px;
+            background-color: #FF0000;
+        }
+
+        .box {
+            float: left;
+            background-color: #aab9ff;
+            border-color: #444;
+            border-width: 4px;
+            padding: 39px;
+            margin: 1px;
+            width: 93px;
+            height: 54px;
+            vertical-align: middle;
+            text-align: center;
+            font-family: tahoma;
+            font-size: 45px;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
+        #tMadeWords tr {
+            -webkit-transition: all 0.5s ease;
+            -moz-transition: all 0.5s ease;
+            -o-transition: all 0.5s ease;
+            transition: all 0.5s ease;
+        }
+        /*.box:hover{
+        background-color: orange;
+        }*/
+        .content {
+            float: left;
+            margin: 0 24px;
+        }
+
+        .nl {
+            clear: both;
+        }
+
+        .mousedown {
+            background-color: orange;
+        }
+
+        .conDiv {
+            background-color: lightsalmon;
+        }
+
+        .text {
+            padding: 27px;
+        }
+
+        #tMadeWords tr {
+            padding: 4px;
+        }
+
+        .score {
+            color: #eee;
+            font-size: 12px;
+        }
+
+
+        /* COUNTDOWN CSS*/
+        .example.example--night {
+            background: none repeat scroll 0 0 #000;
+            color: #fff;
+            min-height: 0;
+            padding: 3px 0;
+            text-align: center;
+        }
+
+
+        .example.example--night {
+            padding: 5px 0 7px;
+        }
+
+            .example.example--night .number {
+                display: inline-block;
+                height: 12px;
+                line-height: 5px;
+                margin: 0 2%;
+                padding: 5% 0;
+            }
+
+        #AllWords {
+            /*clear:both;*/
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <input type="hidden" id="hdnGridId" />
+    <div class="content">
+        <label for="#cbHighlightGrids">WORDAMENT</label>
+        <input type="checkbox" id="cbHighlightGrids" value="false" title="click to highlight connected grids" />
+        <div class="example example--night">
+            <div class="countdown">
+                <span class="number ce-minutes"><span class="ce-minutes-digit" data-old="1" data-value="1">1</span><span class="ce-minutes-digit" data-old="8" data-value="8">8</span></span><span class="number ce-seconds"><span class="ce-seconds-digit" data-old="3" data-value="3">3</span><span class="ce-seconds-digit" data-old="0" data-value="0">0</span></span>
+            </div>
+        </div>
+        <div order="00" class="box nl" id="d0"></div>
+        <div order="01" class="box" id="d1"></div>
+        <div order="02" class="box" id="d2"></div>
+        <div order="03" class="box" id="d3"></div>
+        <div order="10" class="box nl" id="d4"></div>
+        <div order="11" class="box" id="d5"></div>
+        <div order="12" class="box" id="d6"></div>
+        <div order="13" class="box" id="d7"></div>
+        <div order="20" class="box nl" id="d8"></div>
+        <div order="21" class="box" id="d9"></div>
+        <div order="22" class="box" id="d10"></div>
+        <div order="23" class="box" id="d11"></div>
+        <div order="30" class="box nl" id="d12"></div>
+        <div order="31" class="box" id="d13"></div>
+        <div order="32" class="box" id="d14"></div>
+        <div order="33" class="box" id="d15"></div>
+    </div>
+    <div class="content">
+        <table id="tMadeWords">
+            <tr><td>YOUR SCORE: <span id="sPlayerScore"></span></td></tr>
+            <tr> <td>FOUND WORDS</td> </tr>
+            <tr><td><hr /></td></tr>
+        </table>
+    </div>
+    <div id="divPlayerInfo" class="content">
+        <table id="tPlayerInfo">
+            <thead><tr><th colspan="2">Player Info</th></tr></thead>
+        </table>
+    </div>
+    <div id="AllWords" class="content"><h4>ALL WORDS IN THE GRID</h4></div>
+    <div id="shape" style="display:none;" />
+    <div class="panel-footer">
+        Initially started by <a href="https://github.com/mrclan">MrClan</a>. Uses MVC 5 and SignalR.
+    </div>
+</body>
+</html>
