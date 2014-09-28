@@ -1,26 +1,56 @@
-/// <reference path="timer.js" />
 $().ready(function () {
+    // StartClock(10);
     var audio = new Audio("Scripts/d.mp3");
     var moveShapeHub = $.connection.moveShapeHub;
-    var scored = false;    
+    var scored = false;
     moveShapeHub.client.updateScore = function (model) {
-        //alert(model.Name);
-        //$('#divPlayerInfo').html($('#divPlayerInfo').html() + "<br/>Name: <b>" + model.Name + "</b> Score: <i>" + model.Score + "</i>");
-        //if (model.Name.length > 0) {
         $('#trp' + model.Name).remove();
-        $('#tPlayerInfo').append("<tr id='trp" + model.Name + "'><td><br/>Name: <b>" + model.Name + "</b> Score: <i>" + model.Score + "</i></td></tr>");
-        //}
+        $('#tPlayerInfo tbody').append("<tr id='trp" + model.Name + "'><td><br/><b>" + model.Name + " :</b> " + model.Score + "</td></tr>");
     };
+    var isGameOn = false;
+    var isResultsDisplayed = false;
+    moveShapeHub.client.StartNewGame = function (model) {
+        StartNewGame(model.Grid, model.Grid.LifeLeft, model.TotalWords);
+    };
+    moveShapeHub.client.DisableGamePlay = function (model) {
+        DisableGamePlay(model.Solution, (30 - model.Status.TimeLeftInSeconds));
+    }
+
+    function StartNewGame(grid, life, totalWordCount) {
+        alert('starting new game');
+        wordCount = 0;
+        playerScore = 0;
+        isResultsDisplayed = false;
+        if (!isGameOn) {
+            DrawGrid(grid);
+            StartClock(life);
+            $('#sTotWords').text(' / ' + totalWordCount);
+            isGameOn = true;
+        }
+    }
+
+    function DisableGamePlay(solution, life) {
+        isGameOn = false;
+        if (!isResultsDisplayed) {
+            DisplayResults(solution);
+            StopCountDown();
+            $('div#txt').html('<b> PLEASE WAIT ' + life + ' seconds.');
+            isResultsDisplayed = true;
+        }
+    }
+
+
     $.connection.hub.start().done(function () {
         console.log('live update mode ready');
     });
-    console.log(dict.wordlist.length);
+
+    //console.log(dict.wordlist.length);
 
 
-    function DrawGrid(grid)
-    {
+    function DrawGrid(grid) {
         $('div#AllWords').html(''); // clear results
-        $('#hdnGridId').val(grid.GUID);
+        $('#tMadeWords tbody').html('');
+        //$('#hdnGridId').val(grid.GUID);
         for (i = 0; i < 16; i++) {
             var ct = grid.Tiles[i];
             console.log('i: ' + i);
@@ -32,68 +62,51 @@ $().ready(function () {
         }
     }
 
+    function DisplayResults(solution) {
+        if (solution) {
+            for (x = 0; x < solution.length; x++) {
+                $('div#AllWords').append('<b>' + solution[x] + '</b><br/>');
+            }
+        }
+    }
 
-    function InitTimer(time)
-    {
-        var $example = $(".example--night"),
-		$ceMinutes = $example.find('.ce-minutes'),
-		$ceSeconds = $example.find('.ce-seconds'),
-		now = new Date(),
-		then = new Date(now.getTime() + (time*1000));
-
-        $example.find(".countdown").countEverest({
-            second: (then.getSeconds()),
-            minute: then.getMinutes(),
-            hour: then.getHours(),
-            day: then.getDate(),
-            month: (then.getMonth() + 1),
-            year: then.getFullYear(),
-            onComplete: function () {
-                alert("TIME UP...pls wait while we fetch results");
-                $.get('/Home/GetSolution/' + $('#hdnGridId').val()).success(function (results) {
-                    //alert(results);
-                    //debugger;
-                    
-                    for (x = 0; x < results.solution.length; x++)
-                    {
-                        $('div#AllWords').append('<b>'+ results.solution[x] + '</b><br/>');
-                    }
-                    //setTimeout(function () {
-                    //    alert('drawing new grid');
-                    //    DrawGrid(results.Grid);
-                    //    InitTimer(results.Life);
-                    //}, 40000);
-                });
+    function TimeCompleteCallback() {
+        $('#sPlayerScore').append("TIME UP...pls wait while we fetch results... DISABLE THE GRID, and WAIT 30 SECONDS");
+        $.get('/Home/GetSolution').success(function (results) {
+            if (results.isResultsFine) {
+                DisplayResults(results.solution);
+                $('#txt').text('Refresh the page to start next round');
             }
         });
     }
 
-    var allChars = ['A', 'A', 'B', 'C', 'D', 'E', 'E', 'F', 'I', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'M', 'N', 'O', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-    var displayedChars = [];
+    function StartClock(time) {
+        CountDown(time);
+    }
 
-    var filledBox = [];
-    $.get('/Home/GetGrid').success(function (data) {
-        DrawGrid(data.Grid);
-
-        // Initialize countdown timer
-        //alert((data.LifeTimeLeft));
-        InitTimer(data.Life);
-        
+    $.get('/Home/FirstLoad').success(function (data) {
+        console.log(data.Status.Status);
+        if (data.Status.Status == "0")// status is GAMEON
+        {
+            StartNewGame(data.Grid, data.Grid.LifeLeft, data.TotalWords);
+        }
+        else {
+            DisableGamePlay(data.Solution, (30 - data.Status.TimeLeftInSeconds));
+        }
     });
-
-    //alert(allChars.length);
-    //for (i = 0; i < 16; i++) {
-    //    var rndIndex = Math.floor(Math.random() * 16) + 1;
-    //    while (_.contains(filledBox, rndIndex)) {
-    //        rndIndex = Math.floor(Math.random() * 16) + 1;
+    //$.get('/Home/GetGrid').success(function (data) {
+    //    console.log(data.GameStatus);
+    //    if (data.GameStatus != 'GAMEON') {
+    //        console.log('PLEASE WAIT WHILE THE GAME BOOTS UP...');
+    //        return;
     //    }
-    //    filledBox[i] = rndIndex;
-    //    var rndChar = Math.floor(Math.random() * 32);
-    //    //console.info('@ '+ rndChar + ' ' + allChars[rndChar]);
-    //    var temp = $('#d' + rndIndex);
-    //    var orderString = '<sub>' + $(temp).attr('order') + '</sub>';
-    //    temp.append('<span class="text">' + allChars[rndChar] + '</span>');
-    //}
+    //    else {
+    //        DrawGrid(data.Grid);
+    //    }
+
+    //    // Initialize countdown timer
+    //    //StartClock(data.Life);
+    //});
 
     var playerName = prompt("Enter your name please ?");
 
@@ -117,7 +130,7 @@ $().ready(function () {
         $('div.box').removeClass('mousedown').removeClass('conDiv');
     });
 
-    $('span.text').bind('mouseover', function () {
+    $('div.box').on('mouseover', 'span.text', function () {
         var cId = $(this).parent().attr('id');
 
         if (_.isEmpty(selectedGrids)) {
@@ -137,7 +150,7 @@ $().ready(function () {
                 $(this).parent().addClass('mousedown');
             }
         }
-    }).bind('mouseout', function () {
+    }).on('mouseout', 'span.text', function () {
         //console.info('mousedown');
         var cId = $(this).parent().attr('id');
         prevGrid = cId;
@@ -150,19 +163,19 @@ $().ready(function () {
             }
         }
     })
-	.bind('mousedown', function () {
+	.on('mousedown', 'span.text', function () {
 	    selectedGrids.push($(this).parent());
 	    selectedValue += $(this).text();
 	    $(this).parent().addClass('mousedown');
 	});
 
-    $('div.box').bind('mouseover', function () {
+    $('div.box').on('mouseover', function () {
         if (mousedown) {
             if ($('#cbHighlightGrids').is(':checked')) {
                 ShowConnectedGrid($(this));
             }
         }
-    }).bind('mouseout', function () {
+    }).on('mouseout', function () {
         $('div.box').removeClass('conDiv');
     });
 
@@ -191,6 +204,7 @@ $().ready(function () {
         //console.log('curX, curY = ' + curX + ', ' + curY);
     }
 
+    var wordCount = 0;
     var curWordScore = 0;
     var playerScore = 0;
     CheckValidWord = function (item) {
@@ -199,18 +213,20 @@ $().ready(function () {
             // check if this word has already been made
             var rowToHighlight = $('#tr' + item, $('#tMadeWords'));
             if (rowToHighlight.length == 0) {
-                $('#tMadeWords').append('<tr id="tr' + item + '"><td>' + item + '</td></tr>');
+                $('#tMadeWords tbody').append('<tr id="tr' + item + '"><td>' + item + '</td></tr>');
                 $(selectedGrids).each(function () {
                     curWordScore += parseInt($('.score', $(this)).text());
                 });
                 playerScore += curWordScore;
+                wordCount++;
                 $('#sPlayerScore').text(playerScore);
+                $('#sWordCount').text(wordCount);
                 moveShapeHub.server.updateScore({ Name: playerName, Score: playerScore });
                 audio.play();
             }
             else {
                 $(rowToHighlight).addClass('mousedown');
-                setTimeout(function () { $(rowToHighlight).removeClass('mousedown') },1000);
+                setTimeout(function () { $(rowToHighlight).removeClass('mousedown') }, 1000);
             }
         }
         curWordScore = 0;

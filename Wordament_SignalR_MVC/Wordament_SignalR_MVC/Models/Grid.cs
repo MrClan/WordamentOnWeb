@@ -1,21 +1,13 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Web;
 
 namespace Wordament_SignalR_MVC.Models
 {
-
-    public static class CurrentGrid
-    {
-        private static readonly Grid g;
-        static CurrentGrid()
-        {
-            g = new Grid();
-        }
-        public static Grid Get { get { return g; } }
-    }
-
     public class Tile
     {
         public string Letter { get; set; }
@@ -25,7 +17,16 @@ namespace Wordament_SignalR_MVC.Models
     public class Grid
     {
         public Guid GUID { get; private set; }
-        public DateTime StartTime { get; set; }
+        public DateTime CreationTime { get; private set; }
+        public int LifeLeft
+        {
+            get
+            {
+                return (int)(240 - (DateTime.Now - ServedOn).TotalSeconds);
+            }
+        }
+
+        public DateTime ServedOn { get; set; }
         public List<Tile> Tiles { get; private set; }
 
         #region Alpha Declarations
@@ -67,7 +68,7 @@ namespace Wordament_SignalR_MVC.Models
         public Grid()
         {
             this.GUID = Guid.NewGuid();
-            this.StartTime = DateTime.Now;
+            this.CreationTime = DateTime.Now;
             this.Tiles = new List<Tile>(16);
             GenAlphabetTiles(); // generate alphabet list based on cumulative letter frequency
         }
@@ -222,5 +223,116 @@ namespace Wordament_SignalR_MVC.Models
     {
         public Grid Grid { get; set; }
         public List<string> Solution { get; set; }
+    }
+
+    public class GridSolution
+    {
+        public Grid Grid { get; private set; }
+        public List<string> Solution { get; private set; }
+
+        public bool IsSolved { get; private set; }
+
+        public GridSolution()
+        {
+            Grid = new Grid();
+            SolveGrid();
+            foundWords = foundWords.Distinct().ToList();
+            Solution = foundWords;
+        }
+
+        private void SolveGrid()
+        {
+            if (!IsSolved)
+            {
+                Solve(Grid);
+                // save the solution to the file for record
+                //string serializeddString = JsonConvert.SerializeObject(new SerializedSolution() { Grid = Grid, Solution = foundWords });
+                //File.WriteAllText(String.Format("{0}/{1}/{2}_{3}", HttpRuntime.AppDomainAppPath, ConfigurationManager.AppSettings["SavedDbDir"], "Grid", DateTime.Now.ToString().Replace('/', '-').Replace(':', '-').Replace(' ', '-')), serializeddString);
+                IsSolved = true;
+            }
+        }
+
+        private List<Tile> alphaList = new List<Tile>();
+        private List<string> foundWords = new List<string>();
+        private void Solve(Grid grid)
+        {
+            this.foundWords.Clear();
+            alphaList = grid.Tiles;
+            List<string> foundWords = new List<string>();
+            var dict = DictionaryProvider.AllWords;
+            for (int i = 0; i < 16; i++)
+            {
+                // start with every word
+                var curTile = alphaList[i];
+                var subDict = dict.Where(d => d.StartsWith(curTile.Letter)).ToList();
+                if (subDict.Count == 0)
+                {
+                    // no words found, break the loop and continue with next letter in the alphabet
+                    continue;
+                }
+                else // iterate recursively to look for words
+                {
+                    foreach (var x in ConnectedGrids[curTile.Order].Select(k => alphaList[k.Index()]))
+                        IsValidWord(curTile.Letter, x, subDict);
+                }
+            }
+        }
+        private bool IsValidWord(string searchString, Tile t, List<string> dict)
+        {
+            searchString += t.Letter;
+            var subDict = dict.Where(l => l.StartsWith(searchString)).ToList();
+            if (searchString.Length >= 3 && subDict.Contains(searchString))
+            {
+                foundWords.Add(searchString);
+            }
+            if (subDict.Count > 0)
+            {
+                // check with connected letters
+                var conLetters = ConnectedGrids[t.Order].Select(k => alphaList[k.Index()]).ToList();
+                foreach (var x in conLetters)
+                {
+                    bool isValidWord = IsValidWord(searchString, x, subDict);
+                }
+
+            }
+            return false;
+        }
+
+        private static readonly Dictionary<string, List<string>> ConnectedGrids = new Dictionary<string, List<string>> { 
+                                                    {"00",new List<string>{ "01","10","11"}},
+                                                    {"01",new List<string>{ "00","02","10","11","12"}},
+                                                    {"02",new List<string>{ "01","03","11","12","13"}},
+                                                    {"03",new List<string>{ "02","12","13"}},
+                                                    {"10",new List<string>{ "00","01","11","21","20"}},
+                                                    {"11",new List<string>{ "00","01","02","10","12","20","21","22"}},
+                                                    {"12",new List<string>{ "01","02","03","11","13","21","22","23"}},
+                                                    {"13",new List<string>{ "02","03","12","22","23"}},
+
+                                                    {"20",new List<string>{ "10","11","21","30","31"}},
+                                                    {"21",new List<string>{ "10","11","12","20","22","30","31","32"}},
+                                                    {"22",new List<string>{ "11","12","13","21","23","31","32","33"}},
+                                                    {"23",new List<string>{ "12","13","22","32","33"}},
+
+                                                    {"30",new List<string>{ "20","21","31"}},
+                                                    {"31",new List<string>{ "02","21","22","30","32"}},
+                                                    {"32",new List<string>{ "21","22","23","31","33"}},
+                                                    {"33",new List<string>{ "22","23","32"}}
+                                            };
+    }
+
+    public static class DictionaryProvider
+    {
+        static bool isDictLoaded;
+        public static List<string> AllWords { get; private set; }
+        static DictionaryProvider()
+        {
+            string dictPath = HttpRuntime.AppDomainAppPath + "/" + System.Configuration.ConfigurationManager.AppSettings["DictionaryPath"] + "/Dictionary.txt";
+            if (!isDictLoaded)
+                using (StreamReader sr = new StreamReader(dictPath))
+                {
+                    AllWords = sr.ReadToEnd().Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).OrderBy(k => k[0]).ToList();
+                    isDictLoaded = true;
+                }
+        }
     }
 }

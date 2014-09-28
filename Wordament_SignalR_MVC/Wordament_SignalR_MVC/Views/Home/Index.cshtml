@@ -14,13 +14,17 @@
     <script src="~/signalr/hubs"></script>
     <script src="~/Scripts/main.js"></script>
     <script src="~/Scripts/timer.js"></script>
+    <script src="~/Scripts/clock.js"></script>
     @*<script src="~/Scripts/CountdownTimer.js"></script>*@
     <style>
         body {
             background-color: #789789;
+            background-image:url('../../Content/wordament.png');
             vertical-align: middle;
             text-align: center;
-            font-family: tahoma;
+            font-family: "Proxima Nova Regular","Segoe UI",Roboto,"Droid Sans","Helvetica Neue",Arial,sans-serif;
+            font-weight:400;
+            color: snow;
             cursor: pointer;
             font-size: 57px;
             -moz-user-select: none;
@@ -48,6 +52,7 @@
             text-align: center;
             font-family: tahoma;
             font-size: 45px;
+            color:#000;
             -moz-user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
@@ -124,12 +129,12 @@
 </head>
 <body>
     <input type="hidden" id="hdnGridId" />
-    <div class="content">
+    <div id="Main" class="content">
         <label for="#cbHighlightGrids">WORDAMENT</label>
         <input type="checkbox" id="cbHighlightGrids" value="false" title="click to highlight connected grids" />
         <div class="example example--night">
             <div class="countdown">
-                <span class="number ce-minutes"><span class="ce-minutes-digit" data-old="1" data-value="1">1</span><span class="ce-minutes-digit" data-old="8" data-value="8">8</span></span><span class="number ce-seconds"><span class="ce-seconds-digit" data-old="3" data-value="3">3</span><span class="ce-seconds-digit" data-old="0" data-value="0">0</span></span>
+                <b id="txt"></b>
             </div>
         </div>
         <div order="00" class="box nl" id="d0"></div>
@@ -151,20 +156,24 @@
     </div>
     <div class="content">
         <table id="tMadeWords">
-            <tr><td>YOUR SCORE: <span id="sPlayerScore"></span></td></tr>
-            <tr> <td>FOUND WORDS</td> </tr>
-            <tr><td><hr /></td></tr>
+            <thead>
+                <tr><td>YOUR SCORE: <span id="sPlayerScore">0</span></td></tr>
+                <tr> <td>FOUND WORDS : <span id="sWordCount">0</span> <span id="sTotWords"></span></td> </tr>
+                <tr><td><hr /></td></tr>
+            </thead>
+            <tbody></tbody>
         </table>
     </div>
     <div id="divPlayerInfo" class="content">
         <table id="tPlayerInfo">
-            <thead><tr><th colspan="2">Player Info</th></tr></thead>
+            <thead><tr><th>REALTIME SCOREBOARD</th></tr></thead>
+            <tbody></tbody>
         </table>
     </div>
     <div id="AllWords" class="content"><h4>ALL WORDS IN THE GRID</h4></div>
     <div id="shape" style="display:none;" />
     <div class="panel-footer">
-        Initially started by <a href="https://github.com/mrclan">MrClan</a>. Uses MVC 5 and SignalR.
+        Initially started by <a href="https://github.com/mrclan">MrClan</a>. Built on MVC 5 and SignalR.
     </div>
 </body>
 </html>

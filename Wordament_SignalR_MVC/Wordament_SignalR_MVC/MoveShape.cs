@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Web;
+using Wordament_SignalR_MVC.Models;
 
 namespace Wordament_SignalR_MVC
 {
@@ -15,11 +16,15 @@ namespace Wordament_SignalR_MVC
         // We're going to broadcast to all clients a maximum of 25 times per second
         private readonly TimeSpan BroadcastInterval =
             TimeSpan.FromMilliseconds(40);
+        private readonly TimeSpan GameBroadcastInterval =
+            TimeSpan.FromMilliseconds(10000);
         private readonly IHubContext _hubContext;
-        private Timer _broadcastLoop;
+        private Timer _scoreBroadcastLoop;
+        private Timer _gameBroadcastLoop;
         private ShapeModel _model;
         private ScoreModel _scoreString;
         private bool _modelUpdated;
+
         public Broadcaster()
         {
             // Save our hub context so we can easily use it 
@@ -29,16 +34,20 @@ namespace Wordament_SignalR_MVC
             _scoreString = new ScoreModel() { Score = "DYNAMIC SCORE UPDATE", Name = "" };
             _modelUpdated = false;
             // Start the broadcast loop
-            _broadcastLoop = new Timer(
+            _scoreBroadcastLoop = new Timer(
                 BroadcastShape,
                 null,
                 BroadcastInterval,
                 BroadcastInterval);
+            //_scoreBroadcastLoop = new Timer(
+            //    BroadcastGame,
+            //    null,
+            //    GameBroadcastInterval,
+            //    GameBroadcastInterval);
         }
         public void BroadcastShape(object state)
         {
-            // No need to send anything if our model hasn't changed
-            if (_modelUpdated)
+            //if (MvcApplication.UniversalGameStatus.Status == GameStatusEnum.GAMEON)
             {
                 // This is how we can access the Clients property 
                 // in a static hub method or outside of the hub entirely
@@ -46,12 +55,20 @@ namespace Wordament_SignalR_MVC
                 _hubContext.Clients.AllExcept(_model.LastUpdatedBy).updateScore(_scoreString);
                 _modelUpdated = false;
             }
-
         }
-        public void UpdateShape(ShapeModel clientModel)
+
+
+        public void BroadcastGame(object state)
         {
-            _model = clientModel;
-            _modelUpdated = true;
+            if (DisableGamePlay) // game is in paused state, only return results of the previous grid
+            {
+                _hubContext.Clients.All.DisableGamePlay(new { Status = MvcApplication.UniversalGameStatus, Solution = MvcApplication.CurrentGridSolution });
+            }
+            else // game is on, distribute current grid to all clients
+            {
+                var curGrid = MvcApplication.CurrentGrid;
+                _hubContext.Clients.All.StartNewGame(new { Status = MvcApplication.UniversalGameStatus.Status, Grid = curGrid, Life = curGrid.LifeLeft });
+            }
         }
         public static Broadcaster Instance
         {
@@ -66,6 +83,9 @@ namespace Wordament_SignalR_MVC
             _scoreString = scoreString;
             _modelUpdated = true;
         }
+
+        public static bool DisableGamePlay = false;
+
     }
 
     public class MoveShapeHub : Hub
@@ -79,12 +99,6 @@ namespace Wordament_SignalR_MVC
         public MoveShapeHub(Broadcaster broadcaster)
         {
             _broadcaster = broadcaster;
-        }
-        public void UpdateModel(ShapeModel clientModel)
-        {
-            clientModel.LastUpdatedBy = Context.ConnectionId;
-            // Update the shape model within our broadcaster
-            _broadcaster.UpdateShape(clientModel);
         }
 
         public void UpdateScore(ScoreModel scoreModel)

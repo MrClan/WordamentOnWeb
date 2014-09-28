@@ -19,28 +19,33 @@ namespace Wordament_SignalR_MVC.Controllers
             return View();
         }
 
+        public JsonResult FirstLoad()
+        {
+            return Json(MvcApplication.CurrentServedObject, JsonRequestBehavior.AllowGet);
+        }
+
         public JsonResult GetGrid()
         {
-            var x = GetGrid2();
-            return Json(new { Grid = x.Grid, Life = x.Life}, JsonRequestBehavior.AllowGet);
+            var g = (GridSolution)HttpContext.Application["CurrentGrid"];
+            var curGrid = g.Grid;
+            Session["CurGrid"] = g;
+            return Json(new {GameStatus = MvcApplication.UniversalGameStatus.Status, Grid = curGrid, Life = curGrid.LifeLeft}, JsonRequestBehavior.AllowGet);
         }
-
-        private dynamic GetGrid2()
-        {
-            var curGrid = (Grid)HttpContext.Application["CurrentGrid"];
-            int lifeLeft = (int)Math.Floor(120 - (DateTime.Now - curGrid.StartTime).TotalSeconds);
-            return new { Grid = curGrid, Life = lifeLeft };
-        }
-
-        static List<string> DemandedGuids = new List<string>();
 
         public JsonResult GetSolution(string id)
         {
-            DemandedGuids.Add(id);
-            var allSolutions = ((Dictionary<string, List<string>>)HttpContext.Application["GridSolutions"]);
-            var solution = allSolutions[id];
-            var x = GetGrid2();
-            var retVal = Json(new { solution = solution, Grid = x.Grid, Life = x.Life }, JsonRequestBehavior.AllowGet);
+            var retVal = Json(new { isResultsFine = false }, JsonRequestBehavior.AllowGet);
+            var g = (GridSolution)Session["CurGrid"];
+            // if a user issues a request before time, the solution should not be returned to the user
+            //if (g.Grid.LifeLeft < 5)
+            {
+                var g1 = (GridSolution)HttpContext.Application["CurrentGrid"];
+                var curGrid = g1.Grid;
+                Session["CurGrid"] = g1;
+                if (g.Grid.GUID == g1.Grid.GUID)
+                {}
+                retVal = Json(new {isResultsFine = true,GameStatus = MvcApplication.UniversalGameStatus.Status, solution = g.Solution, Grid = g1.Grid, Life = g1.Grid.LifeLeft }, JsonRequestBehavior.AllowGet);
+            }
             return retVal;
         }
     }
